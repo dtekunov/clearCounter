@@ -1,0 +1,8 @@
+{
+  "group_meta": {
+    "id": 10000001,
+    "name": "admin_group",
+    "creation_date": 1623157024,
+    "members_id": [10000000]
+  }
+}

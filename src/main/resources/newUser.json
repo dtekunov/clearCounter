@@ -1,0 +1,12 @@
+{
+  "user_meta": {
+    "id": 10000000,
+    "name": "admin",
+    "login": "admin",
+    "password": "03b8cc2c420982a29ab71f980c65955d",
+    "_type": "admin",
+    "creation_date": 1623157024,
+    "became_clear_time": 1623157024,
+    "groups": ["admin_group"]
+  }
+}
