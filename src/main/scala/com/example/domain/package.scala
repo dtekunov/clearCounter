@@ -16,7 +16,7 @@ package object domain {
                       login: String,
                       _type: UserType,
                       becameClearTime: Int,
-                      groups: Vector[String])
+                      groups: Set[String])
 
   case class UserData(id: UUID,
                       name: String,
@@ -25,16 +25,17 @@ package object domain {
                      _type: UserType,
                       creationDate: Int,
                       becameClearTime: Int,
-                      groups: Vector[String])
+                      groups: Set[String])
 
-  case class AdminMeta(id: UUID, login: String, _type: UserType)
+  case class AdminMeta(id: UUID,
+                       login: String,
+                       _type: UserType)
 
-  implicit def either2Try[T](income: Either[String, T]): Try[T] = {
-    income match {
+  implicit def either2Try[T](income: Either[String, T]): Try[T] = income match {
       case Right(message) => Success(message)
       case Left(ex) => Failure(TypeValidationException(ex))
-    }
   }
+
   type UserType = Refined[String, UserTypePredicate]
 
   object UserType {

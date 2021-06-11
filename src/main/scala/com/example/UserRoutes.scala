@@ -11,7 +11,7 @@ import akka.stream.scaladsl.Sink
 import akka.util.Timeout
 import com.example.userRegistry._
 import com.example.userRegistry.Command
-import com.example.utils.Responses.{badTypeValidationResponse, getUserResponse, internalServerErrorResponse, noSuchUserResponse, pongResponse}
+import com.example.utils.Responses.{badTypeValidationResponse, getUserResponse, internalServerErrorResponse, noSuchUserResponse, pongResponse, postUserImpossibleResponse}
 
 import java.util.UUID
 import scala.util.{Failure, Success, Try}
@@ -39,41 +39,47 @@ class UserRoutes(userRegistry: ActorRef[Command])(implicit val system: ActorSyst
   //#all-routes
   //#users-get-post
   //#users-get-delete
-  val userRoutes: Route =
+  def routes(implicit ec: ExecutionContextExecutor = system.executionContext): Route =
     pathPrefix("counter") {
       pathPrefix("users") {
         get {
-          //#-- get by <id> is a service route to get meta info
-          parameter("id") { id =>
-            Try(UUID.fromString(id)) match {
-              case Success(uuid) =>
-                onComplete(getUserById(uuid)) {
-                  case Success(response) =>
-                    response.maybeUser match {
-                      case Some(userMeta) => getUserResponse(userMeta)
-                      case None => noSuchUserResponse("No such user", uuid)
-                    }
-                  case Failure(ex) => internalServerErrorResponse(ex.getLocalizedMessage)
-                }
-              case Failure(ex) => badTypeValidationResponse(ex.getLocalizedMessage, id)
-            }
-          } ~ parameter("login") { login =>
-            onComplete(getUserByLogin(login)) {
-              case Success(response) =>
-                response.maybeUser match {
-                  case Some(userMeta) => getUserResponse(userMeta)
-                  case None => noSuchUserResponse("No such user", login)
-                }
-              case Failure(ex) => internalServerErrorResponse(ex.getLocalizedMessage)
+          extractRequest { request =>
+            //#-- get by <id> is a service route to get meta info
+            parameter("id") { id =>
+              Try(UUID.fromString(id)) match {
+                case Success(uuid) =>
+                  onComplete(getUserById(uuid)) {
+                    case Success(response) =>
+                      response.maybeUser match {
+                        case Some(userMeta) => getUserResponse(userMeta)
+                        case None => noSuchUserResponse("No such user", uuid)
+                      }
+                    case Failure(ex) => internalServerErrorResponse(ex.getLocalizedMessage)
+                  }
+                case Failure(ex) => badTypeValidationResponse(ex.getLocalizedMessage, id)
+              }
+            } ~ parameter("login") { login =>
+              onComplete(getUserByLogin(login)) {
+                case Success(response) =>
+                  response.maybeUser match {
+                    case Some(userMeta) => getUserResponse(userMeta)
+                    case None => noSuchUserResponse("No such user", login)
+                  }
+                case Failure(ex) => internalServerErrorResponse(ex.getLocalizedMessage)
+              }
             }
           }
         } ~ post {
           extractRequest { request =>
-            implicit val ec: ExecutionContextExecutor = system.executionContext
-            onComplete(request.entity.withSizeLimit(1024).dataBytes
+            onComplete(request.entity.withSizeLimit(2048).dataBytes
 //              .limit(MAX_ALLOWED_SIZE) todo: think about it
               .runWith(Sink.seq)) {
-                case Success(res) => complete(res.toString) //TODO
+                case Success(res) =>
+                  res.map(elem => elem.decodeString("UTF-8")).headOption match {
+                    case Some(user) =>
+                    case None => postUserImpossibleResponse("No user provided")
+                  }
+
                 case Failure(ex) =>
                 system.log.error(s"User creation failed due to [$ex]")
                 internalServerErrorResponse(ex.getLocalizedMessage)

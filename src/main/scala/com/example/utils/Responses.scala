@@ -55,4 +55,13 @@ object Responses {
         contentType=ContentTypes.`application/json`,
         string = JsonWriter.format(message, None)
       )))
+
+  def postUserImpossibleResponse(message: String): StandardRoute =
+    complete(HttpResponse(
+      status= StatusCodes.ExpectationFailed,
+      headers = baseHeaders,
+      entity = HttpEntity(
+        contentType=ContentTypes.`application/json`,
+        string = JsonWriter.format(message, None)
+      )))
 }
